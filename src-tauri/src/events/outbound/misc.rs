@@ -21,11 +21,17 @@ pub fn frame_rate() -> u8 {
 }
 
 pub fn set_frame_rate(fps: u8) {
-	FRAME_RATE.send_if_modified(|current| {
+	let changed = FRAME_RATE.send_if_modified(|current| {
 		let changed = *current != fps;
 		*current = fps;
 		changed
 	});
+	#[cfg(target_os = "macos")]
+	if changed {
+		crate::display_activity::refresh();
+	}
+	#[cfg(not(target_os = "macos"))]
+	let _ = changed;
 }
 
 pub async fn stream_frame_rate(plugin: String) {

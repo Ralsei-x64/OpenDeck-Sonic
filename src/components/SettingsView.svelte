@@ -78,6 +78,7 @@
 					<option value={60}>60 fps</option>
 				</select>
 			</div>
+			<Tooltip>{$t("settings.animation_fps.tooltip")}</Tooltip>
 		</div>
 		<div class="flex flex-row items-center mx-2 mb-2 space-x-2">
 			<input type="checkbox" id="settings-reduce-tearing" bind:checked={$settings.reduce_tearing} />

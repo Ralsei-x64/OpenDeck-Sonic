@@ -59,6 +59,8 @@ pub async fn get_devices() -> dashmap::DashMap<String, DeviceInfo> {
 }
 
 pub async fn update_devices() {
+	#[cfg(target_os = "macos")]
+	crate::display_activity::refresh();
 	let app = crate::APP_HANDLE.get().unwrap();
 	let _ = app.get_webview_window("main").unwrap().emit("devices", DEVICES.clone());
 }

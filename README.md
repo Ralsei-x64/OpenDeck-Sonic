@@ -2,7 +2,7 @@
 
 OpenDeck Sonic is a fork of [OpenDeck](https://github.com/nekename/OpenDeck) with immediate device frame delivery and optional paced delivery. For Sonic, build this repository from source. The upstream installation links below download the standard OpenDeck app.
 
-In **Settings**, **Animation frame rate** selects a 30 or 60 fps target for compatible plugins such as Clocky. **Reduce tearing** works at either rate. With it enabled, Sonic spaces complete image transfers and keeps the newest frame when a device falls behind. The Neo exposes no vertical-sync signal over USB, so tearing can still occur during panel refresh. [Neo HID reference](https://docs.elgato.com/streamdeck/hid/stream-deck-neo/)
+In **Settings**, **Animation frame rate** selects a 30 or 60 fps target for compatible plugins such as Clocky. **Reduce tearing** works at either rate. On macOS, selecting 60 fps keeps background rendering responsive while a connected Neo is awake. This can use more power. With tear reduction enabled, Sonic spaces complete image transfers and keeps the newest frame when a device falls behind. The Neo exposes no vertical-sync signal over USB, so tearing can still occur during panel refresh. [Neo HID reference](https://docs.elgato.com/streamdeck/hid/stream-deck-neo/)
 
 Plugins can include `"subscribeFrameRate": true` in their WebSocket registration to receive `sonicFrameRateDidChange` with `payload.fps` on connection and whenever the setting changes.
 

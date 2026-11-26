@@ -103,10 +103,6 @@ pub async fn set_image(mut event: ContextAndPayloadEvent<SetImagePayload>) -> Re
 		}
 
 		event.payload.apply(instance)?;
-		#[cfg(target_os = "macos")]
-		if instance.context.controller == "Infobar" && crate::events::outbound::misc::frame_rate() == 60 {
-			crate::display_activity::record_frame();
-		}
 		update_state_image(crate::APP_HANDLE.get().unwrap(), instance, event.payload.state, event.payload.image.as_deref())?;
 	}
 
