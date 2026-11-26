@@ -4,7 +4,7 @@ version = "2.14.2"
 description = "Use stream controllers"
 authors = ["Aman Khanna (nekename)"]
 license = "GPL-3.0-or-later"
-repository = "https://github.com/nekename/OpenDeck"
+repository = "https://github.com/Ralsei-x64/OpenDeck-Sonic"
 default-run = "opendeck"
 edition = "2024"
 

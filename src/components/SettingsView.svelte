@@ -214,7 +214,7 @@
 		<div class="flex flex-row items-center mt-4 text-sm text-neutral-400">
 			<span class="mr-1">
 				{$t("settings.footer.1")}
-				<button on:click={() => invoke("open_url", { url: "https://github.com/nekename/OpenDeck" })} class="underline">{$t("settings.footer.2")}</button>
+				<button on:click={() => invoke("open_url", { url: "https://github.com/Ralsei-x64/OpenDeck-Sonic" })} class="underline">{$t("settings.footer.2")}</button>
 			</span>
 			<Star weight="fill" fill="yellow" />
 			<span class="mx-1">

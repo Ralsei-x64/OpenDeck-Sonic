@@ -1,6 +1,6 @@
-# OpenDeck
+# OpenDeck Sonic
 
-Linux software for your Elgato Stream Deck
+OpenDeck Sonic is a fork of [OpenDeck](https://github.com/nekename/OpenDeck) that submits rendered frames to the device as soon as they are ready. For Sonic, build this repository from source. The upstream installation links below download the standard OpenDeck app.
 
 ![Main menu](.github/readme/mainmenu.png)
 [More screenshots](#showcase)

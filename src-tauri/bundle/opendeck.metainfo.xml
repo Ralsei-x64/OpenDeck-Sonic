@@ -2,12 +2,12 @@
 <component type="desktop-application">
 	<id>opendeck</id>
 
-	<name>OpenDeck</name>
+	<name>OpenDeck Sonic</name>
 	<summary>Use stream controllers</summary>
 	<developer id="me.amankhanna"><name>Aman Khanna</name></developer>
 	<launchable type="desktop-id">opendeck.desktop</launchable>
 
-	<url type="vcs-browser">https://github.com/nekename/OpenDeck</url>
+	<url type="vcs-browser">https://github.com/Ralsei-x64/OpenDeck-Sonic</url>
 	<url type="homepage">https://github.com/nekename/OpenDeck</url>
 	<url type="bugtracker">https://github.com/nekename/OpenDeck/issues</url>
 	<url type="faq">https://github.com/nekename/OpenDeck?tab=readme-ov-file#support</url>

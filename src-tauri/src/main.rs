@@ -260,14 +260,16 @@ If you have already donated, thank you so much for your support!"#,
 			}
 
 			async fn update() -> Result<(), anyhow::Error> {
-				let res = reqwest::Client::new()
-					.get("https://api.github.com/repos/nekename/OpenDeck/releases/latest")
+				let response = reqwest::Client::new()
+					.get("https://api.github.com/repos/Ralsei-x64/OpenDeck-Sonic/releases/latest")
 					.header("Accept", "application/vnd.github+json")
-					.header("User-Agent", "OpenDeck")
+					.header("User-Agent", PRODUCT_NAME)
 					.send()
-					.await?
-					.json::<serde_json::Value>()
 					.await?;
+				if response.status() == reqwest::StatusCode::NOT_FOUND {
+					return Ok(());
+				}
+				let res = response.error_for_status()?.json::<serde_json::Value>().await?;
 				let tag_name = res.get("tag_name").unwrap().as_str().unwrap();
 				if semver::Version::parse(built_info::PKG_VERSION)?.cmp(&semver::Version::parse(&tag_name[1..])?) == Ordering::Less {
 					let app = APP_HANDLE.get().unwrap();
@@ -367,7 +369,13 @@ If you have already donated, thank you so much for your support!"#,
 				.dbus_id("me.amankhanna.opendeck")
 				.build(),
 		)
-		.plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--hide"])))
+		// Both editions use the same profiles and device. Keep one login entry when switching editions.
+		.plugin(
+			tauri_plugin_autostart::Builder::new()
+				.app_name(if cfg!(target_os = "linux") { "opendeck" } else { "OpenDeck" })
+				.args(["--hide"])
+				.build(),
+		)
 		.plugin(tauri_plugin_dialog::init())
 		.plugin(tauri_plugin_deep_link::init())
 		.on_window_event(|window, event| {
