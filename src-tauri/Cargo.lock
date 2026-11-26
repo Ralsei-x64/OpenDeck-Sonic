@@ -3551,6 +3551,8 @@ dependencies = [
  "libc",
  "log",
  "log-panics",
+ "objc2",
+ "objc2-foundation",
  "open",
  "os_info",
  "path-slash",

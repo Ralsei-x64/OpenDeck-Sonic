@@ -15,6 +15,11 @@ pub async fn system_did_wake_up() -> Result<(), anyhow::Error> {
 static FRAME_RATE: std::sync::LazyLock<tokio::sync::watch::Sender<u8>> =
 	std::sync::LazyLock::new(|| tokio::sync::watch::channel(crate::store::get_settings().value.animation_fps).0);
 
+#[cfg(target_os = "macos")]
+pub fn frame_rate() -> u8 {
+	*FRAME_RATE.borrow()
+}
+
 pub fn set_frame_rate(fps: u8) {
 	FRAME_RATE.send_if_modified(|current| {
 		let changed = *current != fps;

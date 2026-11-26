@@ -3,6 +3,8 @@
 
 mod application_watcher;
 mod device_sleep;
+#[cfg(target_os = "macos")]
+mod display_activity;
 mod elgato;
 mod encoder_layouts;
 mod events;
