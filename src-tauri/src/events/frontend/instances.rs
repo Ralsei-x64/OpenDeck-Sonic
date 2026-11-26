@@ -222,6 +222,22 @@ struct UpdateStateEvent {
 	contents: Option<ActionInstance>,
 }
 
+#[derive(Clone, serde::Serialize)]
+struct StateImageEvent<'a> {
+	context: &'a ActionContext,
+	action: &'a str,
+	state: Option<u16>,
+	image: Option<&'a str>,
+}
+
+pub fn update_state_image(app: &AppHandle, instance: &ActionInstance, state: Option<u16>, image: Option<&str>) -> Result<(), anyhow::Error> {
+	app.get_webview_window("main").unwrap().emit(
+		"update_state",
+		StateImageEvent { context: &instance.context, action: &instance.action.uuid, state, image },
+	)?;
+	Ok(())
+}
+
 pub async fn update_state(app: &AppHandle, context: ActionContext, locks: &mut LocksMut<'_>) -> Result<(), anyhow::Error> {
 	let window = app.get_webview_window("main").unwrap();
 	window.emit(
@@ -325,4 +341,21 @@ pub async fn key_moved(app: &AppHandle, context: Context, pressed: bool) -> Resu
 	let window = app.get_webview_window("main").unwrap();
 	window.emit("key_moved", KeyMovedEvent { context, pressed })?;
 	Ok(())
+}
+
+#[cfg(test)]
+mod image_tests {
+	use super::*;
+	use serde_json::json;
+
+	#[test]
+	fn frame_event_serializes_only_routing_and_the_image_change() {
+		let context: ActionContext = "qa.Default.Infobar.0.0".parse().unwrap();
+		for (state, image) in [(None, Some("new frame")), (Some(1), None)] {
+			let event = StateImageEvent { context: &context, action: "qa.clock", state, image };
+			assert_eq!(serde_json::to_value(event).unwrap(), json!({
+				"context": "qa.Default.Infobar.0.0", "action": "qa.clock", "state": state, "image": image
+			}));
+		}
+	}
 }

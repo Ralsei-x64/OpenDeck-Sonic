@@ -20,6 +20,7 @@ pub async fn set_settings(event: super::ContextAndPayloadEvent<serde_json::Value
 		instance.settings = event.payload;
 		outbound::did_receive_settings(instance, !from_property_inspector).await?;
 		mark_profile_stale(&event.context.device, &mut locks).await?;
+		crate::events::frontend::instances::update_state(crate::APP_HANDLE.get().unwrap(), event.context, &mut locks).await?;
 	}
 
 	Ok(())

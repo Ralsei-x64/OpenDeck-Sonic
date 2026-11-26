@@ -26,6 +26,12 @@
 	function adjustImageScale(delta: number) {
 		const next = (instance.states[state].image_scale || 100) + delta;
 		instance.states[state].image_scale = Math.max(10, Math.min(200, next));
+		saveEdit();
+	}
+
+	function saveStyle() {
+		instance.states[state].style = bold && italic ? "Bold Italic" : bold ? "Bold" : italic ? "Italic" : "Regular";
+		saveEdit();
 	}
 
 	function handleDrop(event: DragEvent) {
@@ -41,6 +47,7 @@
 				let resized = await resizeImage(result);
 				if (resized) instance.states[state].image_override = resized;
 				else instance.states[state].image_override = result;
+				saveEdit();
 			}
 		};
 
@@ -52,7 +59,10 @@
 		italic = instance.states[state].style.includes("Italic");
 	}
 	$: update(instance);
-	$: invoke("set_state", { context: instance.context, index: state, state: instance.states[state] });
+	// Save user edits only. Incoming plugin images also update the bound instance.
+	function saveEdit() {
+		void invoke("set_state", { context: instance.context, index: state, state: instance.states[state] });
+	}
 
 	let canvas: HTMLCanvasElement;
 	$: renderImage(canvas, null, instance.states[state], instance.action.states[state]?.image ?? instance.action.icon, false, false, true, false, false, 0);
@@ -93,6 +103,7 @@
 					// Support further resetting the base image to the manifest value as a migration path
 					// for profiles where the base image and user override image were indistinguishable.
 					else instance.states[state].image = instance.action.states[state]?.image ?? instance.action.icon;
+					saveEdit();
 				}}
 				title={$t("instance_editor.image.hint")}
 				aria-label={$t("instance_editor.image.hint")}
@@ -144,7 +155,13 @@
 				class="mt-1 px-0.5 text-sm text-neutral-300 bg-neutral-600 hover:bg-neutral-500 transition-colors border border-neutral-500 rounded-lg"
 			>
 				{$t("instance_editor.background")}
-				<input bind:this={backgroundColourInput} type="color" bind:value={instance.states[state].background_colour} class="absolute invisible w-0 h-0" />
+				<input
+					bind:this={backgroundColourInput}
+					type="color"
+					bind:value={instance.states[state].background_colour}
+					on:input={saveEdit}
+					class="absolute invisible w-0 h-0"
+				/>
 			</button>
 			<button
 				on:click={() => solidColourInput.click()}
@@ -177,6 +194,7 @@
 						context.fillStyle = solidColourInput.value;
 						context.fillRect(0, 0, canvas.width, canvas.height);
 						instance.states[state].image_override = canvas.toDataURL("image/png");
+						saveEdit();
 					}}
 				/>
 			</button>
@@ -196,6 +214,7 @@
 						let resized = await resizeImage(result);
 						if (resized) instance.states[state].image_override = resized;
 						else instance.states[state].image_override = result;
+						saveEdit();
 					}
 				};
 
@@ -208,6 +227,7 @@
 				<label for="editor-text">{$t("instance_editor.text")}</label>
 				<textarea
 					bind:value={instance.states[state].text_override}
+					on:input={saveEdit}
 					placeholder={instance.states[state].text}
 					rows="1"
 					class="w-full px-1 text-neutral-300 bg-neutral-600 border border-neutral-500 rounded-lg resize-none"
@@ -219,12 +239,13 @@
 				<input
 					type="color"
 					bind:value={instance.states[state].colour}
+					on:input={saveEdit}
 					class="mr-2 px-0.5 bg-neutral-600 border border-neutral-500 rounded-lg"
 					id="editor-colour"
 				/>
 				<label for="editor-show" class="mr-2">{$t("instance_editor.show")}</label>
-				<input type="checkbox" bind:checked={instance.states[state].show} class="mr-4 mt-1 scale-125" id="editor-show" />
-				<select bind:value={instance.states[state].alignment} class="px-1! py-0.5!" aria-label={$t("instance_editor.alignment")}>
+				<input type="checkbox" bind:checked={instance.states[state].show} on:change={saveEdit} class="mr-4 mt-1 scale-125" id="editor-show" />
+				<select bind:value={instance.states[state].alignment} on:change={saveEdit} class="px-1! py-0.5!" aria-label={$t("instance_editor.alignment")}>
 					<option value="top">{$t("instance_editor.alignment.top")}</option>
 					<option value="middle">{$t("instance_editor.alignment.middle")}</option>
 					<option value="bottom">{$t("instance_editor.alignment.bottom")}</option>
@@ -235,6 +256,7 @@
 				<input
 					type="color"
 					bind:value={instance.states[state].stroke_colour}
+					on:input={saveEdit}
 					class="mr-2 px-0.5 bg-neutral-600 border border-neutral-500 rounded-lg"
 					id="editor-stroke"
 				/>
@@ -242,6 +264,7 @@
 				<input
 					type="number"
 					bind:value={instance.states[state].stroke_size}
+					on:input={saveEdit}
 					class="px-0.5 w-14 text-neutral-300 bg-neutral-600 border border-neutral-500 rounded-lg"
 					id="editor-outline"
 				/>
@@ -251,6 +274,7 @@
 				<input
 					list="families"
 					bind:value={instance.states[state].family}
+					on:input={saveEdit}
 					placeholder={$t("instance_editor.font.placeholder")}
 					class="w-full px-1 text-neutral-300 bg-neutral-600 border border-neutral-500 rounded-lg"
 					id="editor-font"
@@ -273,27 +297,16 @@
 			</div>
 			<div class="flex flex-row items-center">
 				<label for="editor-bold" class="mr-3 font-bold">B</label>
-				<input
-					type="checkbox"
-					bind:checked={bold}
-					on:change={() => (instance.states[state].style = bold && italic ? "Bold Italic" : bold ? "Bold" : italic ? "Italic" : "Regular")}
-					class="mr-4 mt-1 scale-125"
-					id="editor-bold"
-				/>
+				<input type="checkbox" bind:checked={bold} on:change={saveStyle} class="mr-4 mt-1 scale-125" id="editor-bold" />
 				<label for="editor-italic" class="mr-3 italic">I</label>
-				<input
-					type="checkbox"
-					bind:checked={italic}
-					on:change={() => (instance.states[state].style = bold && italic ? "Bold Italic" : bold ? "Bold" : italic ? "Italic" : "Regular")}
-					class="mr-4 mt-1 scale-125"
-					id="editor-italic"
-				/>
+				<input type="checkbox" bind:checked={italic} on:change={saveStyle} class="mr-4 mt-1 scale-125" id="editor-italic" />
 				<label for="editor-underline" class="mr-3 underline">U</label>
-				<input type="checkbox" bind:checked={instance.states[state].underline} class="mr-4 mt-1 scale-125" id="editor-underline" />
+				<input type="checkbox" bind:checked={instance.states[state].underline} on:change={saveEdit} class="mr-4 mt-1 scale-125" id="editor-underline" />
 				<label for="editor-size" class="mr-2">{$t("instance_editor.font.size")}</label>
 				<input
 					type="number"
 					bind:value={instance.states[state].size}
+					on:input={saveEdit}
 					class="px-0.5 w-14 text-neutral-300 bg-neutral-600 border border-neutral-500 rounded-lg"
 					id="editor-size"
 				/>

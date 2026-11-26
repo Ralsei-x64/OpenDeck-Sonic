@@ -80,10 +80,7 @@ export async function renderImage(
 		const imageSource = state.image_override ?? state.image;
 		image.src = processImage ? getImage(imageSource, fallback) : imageSource;
 		if (image.src == undefined) return;
-		await new Promise((resolve, reject) => {
-			image.onload = resolve;
-			image.onerror = reject;
-		});
+		await image.decode();
 
 		context.clearRect(0, 0, canvas.width, canvas.height);
 

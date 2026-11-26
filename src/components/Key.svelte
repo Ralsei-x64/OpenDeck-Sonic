@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ActionInstance } from "$lib/ActionInstance";
+	import { applyStateUpdate, type ActionInstance, type StateUpdate } from "$lib/ActionInstance";
 	import type { ActionState } from "$lib/ActionState";
 	import type { Context } from "$lib/Context";
 	import type { CopiedItem } from "$lib/propertyInspector";
@@ -17,7 +17,7 @@
 
 	import { invoke } from "@tauri-apps/api/core";
 	import { listen } from "@tauri-apps/api/event";
-	import { onDestroy, tick } from "svelte";
+	import { onDestroy, onMount, tick } from "svelte";
 	import { FramePacer } from "$lib/framePacer";
 
 	export let context: Context | null;
@@ -51,8 +51,11 @@
 		}
 	}
 
-	listen("update_state", ({ payload }: { payload: { context: string; contents: ActionInstance | null } }) => {
-		if (payload.context == slot?.context) slot = payload.contents;
+	onMount(() => {
+		const unlisten = listen<StateUpdate>("update_state", ({ payload }) => {
+			if (slot && payload.context === slot.context) slot = applyStateUpdate(slot, payload);
+		});
+		return () => { void unlisten.then((stop) => stop()); };
 	});
 
 	listen("key_moved", ({ payload }: { payload: { context: Context; pressed: boolean } }) => {
@@ -165,7 +168,7 @@
 		const requested = nextGeneration();
 		const route = output.route;
 		const dest = context;
-		const frameState = state;
+		const frameState = state && { ...state };
 		const fallback = slot?.action.states[slot.current_state]?.image ?? slot?.action.icon;
 		const present = (write: () => Promise<void>) => output.submit(route, write);
 		const unlock = await lock.lock();
