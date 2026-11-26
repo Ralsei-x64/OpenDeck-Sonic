@@ -47,6 +47,7 @@ pub async fn register_plugin(event: RegisterEvent, stream: WebSocketStream<TcpSt
 					task.abort();
 					let _ = task.await;
 				}
+				if uuid == crate::infobar::PLUGIN { crate::infobar::disconnected().await; }
 				PLUGIN_SOCKETS.lock().await.remove(&uuid);
 			});
 		}

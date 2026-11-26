@@ -58,7 +58,8 @@ pub fn deregister_device(device: &str) {
 
 pub async fn sleep_device(device: String) -> Result<(), anyhow::Error> {
 	crate::events::outbound::devices::set_device_brightness(&device, 0).await?;
-	SLEEPING_DEVICES.insert(device, ());
+	SLEEPING_DEVICES.insert(device.clone(), ());
+	crate::infobar::refresh_device(&device).await;
 	#[cfg(target_os = "macos")]
 	crate::display_activity::refresh();
 	Ok(())
@@ -88,6 +89,7 @@ async fn sleep_idle_devices() -> Result<(), anyhow::Error> {
 
 pub async fn wake_device(device: &str) -> Result<bool, anyhow::Error> {
 	if SLEEPING_DEVICES.remove(device).is_some() {
+		crate::infobar::refresh_device(device).await;
 		#[cfg(target_os = "macos")]
 		crate::display_activity::refresh();
 		let brightness = crate::store::get_settings().value.brightness;

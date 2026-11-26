@@ -6,6 +6,7 @@ mod device_sleep;
 #[cfg(target_os = "macos")]
 mod display_activity;
 mod elgato;
+mod infobar;
 mod encoder_layouts;
 mod events;
 mod plugins;
@@ -87,6 +88,8 @@ async fn main() {
 			frontend::instances::set_state,
 			frontend::instances::set_child_delay,
 			frontend::instances::update_image,
+			infobar::watch_infobar,
+			infobar::infobar_preview,
 			frontend::instances::wait_for_frame,
 			frontend::instances::trigger_virtual_press,
 			frontend::profiles::get_profiles,

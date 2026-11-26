@@ -9,6 +9,8 @@ struct AppearEvent {
 	context: ActionContext,
 	device: String,
 	payload: GenericInstancePayload,
+	#[serde(rename="sonicInfobar", skip_serializing_if="Option::is_none")]
+	sonic_infobar: Option<bool>,
 }
 
 pub async fn will_appear(instance: &ActionInstance) -> Result<(), anyhow::Error> {
@@ -16,6 +18,7 @@ pub async fn will_appear(instance: &ActionInstance) -> Result<(), anyhow::Error>
 		&instance.action.plugin,
 		&AppearEvent {
 			event: "willAppear",
+			sonic_infobar: crate::infobar::appear(instance).await.then_some(true),
 			action: instance.action.uuid.clone(),
 			context: instance.context.clone(),
 			device: instance.context.device.clone(),
@@ -30,10 +33,12 @@ pub async fn will_appear(instance: &ActionInstance) -> Result<(), anyhow::Error>
 }
 
 pub async fn will_disappear(instance: &ActionInstance, clear_on_device: bool) -> Result<(), anyhow::Error> {
+	if instance.action.uuid == crate::infobar::ACTION { crate::infobar::stop(&instance.context).await; }
 	send_to_plugin(
 		&instance.action.plugin,
 		&AppearEvent {
 			event: "willDisappear",
+			sonic_infobar: None,
 			action: instance.action.uuid.clone(),
 			context: instance.context.clone(),
 			device: instance.context.device.clone(),

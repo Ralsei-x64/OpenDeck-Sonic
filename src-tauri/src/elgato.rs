@@ -27,6 +27,17 @@ fn extract_average_colour(img: &image::DynamicImage) -> (u8, u8, u8) {
 	((r_sum / count) as u8, (g_sum / count) as u8, (b_sum / count) as u8)
 }
 
+pub async fn write_infobar(id: &str, r: crate::infobar::WindowRect, jpeg: Vec<u8>) -> Result<(), anyhow::Error> {
+	let devices = ELGATO_DEVICES.read().await;
+	let device = devices.get(id).filter(|d| d.kind() == Kind::Neo).ok_or_else(|| anyhow::anyhow!("Neo disconnected"))?;
+	if (r.w, r.h) == (248, 58) {
+		device.write_lcd_fill(&jpeg).await?;
+	} else {
+		device.write_lcd(r.x as u16, r.y as u16, &ImageRect { w:r.w as u16, h:r.h as u16, data:jpeg }).await?;
+	}
+	Ok(())
+}
+
 pub async fn update_image(context: &crate::shared::Context, image: Option<&str>) -> Result<(), anyhow::Error> {
 	if let Some(device) = ELGATO_DEVICES.read().await.get(&context.device) {
 		let kind = device.kind();

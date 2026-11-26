@@ -18,6 +18,7 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import { listen } from "@tauri-apps/api/event";
 	import { onDestroy, onMount, tick } from "svelte";
+	import { watchPreview } from "$lib/infobarPreview";
 	import { FramePacer } from "$lib/framePacer";
 
 	export let context: Context | null;
@@ -153,6 +154,18 @@
 
 	let canvas: HTMLCanvasElement;
 	const lock = new CanvasLock();
+	let nativeOwned = false;
+	function nativePreview(node: HTMLCanvasElement, key: string) {
+		// Most keys never need a preview subscription.
+		let preview: ReturnType<typeof watchPreview> | undefined;
+		function update(id: string) {
+			if (!id) { preview?.destroy(); preview = undefined; nativeOwned = false; }
+			else if (preview) preview.update(id);
+			else preview = watchPreview(node, lock, (value) => nativeOwned = value, id);
+		}
+		update(key);
+		return { update, destroy: () => preview?.destroy() };
+	}
 	const output = new FramePacer((ms) => invoke("wait_for_frame", { micros: Math.ceil(ms * 1000) }));
 	let generation = 0;
 	const nextGeneration = () => ++generation;
@@ -173,7 +186,7 @@
 		const present = (write: () => Promise<void>) => output.submit(route, write);
 		const unlock = await lock.lock();
 		try {
-			if (route !== output.route || (paced && superseded(requested))) return;
+			if (nativeOwned || route !== output.route || (paced && superseded(requested))) return;
 			if (frameState && canvas) {
 				await renderImage(canvas, dest, frameState, fallback, showOk, showAlert, true, active, pressed, $settings?.rotation, present);
 			} else if (!frameState) {
@@ -186,6 +199,7 @@
 	})();
 
 	function clearAndRedraw() {
+		if (nativeOwned) return;
 		canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
 		slot = slot;
 	}
@@ -205,6 +219,7 @@
 <div class="relative" style={`transform: scale(${(112 /* desired inner size */ / size) * scale});`}>
 	<canvas
 		bind:this={canvas}
+		use:nativePreview={active && context?.controller === "Infobar" && slot?.action.uuid === "dev.clocky.neo.clockface" ? slot.context : ""}
 		class="relative border-3 border-neutral-700 rounded-3xl outline-none outline-offset-2 outline-blue-500"
 		style={`margin: ${-((size + 3 * 2 /* border */ - 132) /* desired outer size */ / 2)}px;`}
 		class:outline-solid={active && ((slot && $inspectedInstance == slot.context) || (context && $inspectedInstance == context))}

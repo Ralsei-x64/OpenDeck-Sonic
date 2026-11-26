@@ -33,9 +33,13 @@ pub async fn set_settings(_app: AppHandle, mut settings: crate::store::Settings)
 
 	let mut store = crate::store::SETTINGS_MUT.lock().await;
 	settings.animation_fps = if settings.animation_fps == 60 { 60 } else { 30 };
+	let changed = (settings.animation_fps, settings.reduce_tearing, settings.rotation) != (store.value.animation_fps, store.value.reduce_tearing, store.value.rotation);
 	store.value = settings;
 	store.save()?;
 	crate::events::outbound::misc::set_frame_rate(store.value.animation_fps);
+	let rotation = store.value.rotation;
+	drop(store);
+	if changed { crate::infobar::settings_changed(rotation).await?; }
 	Ok(())
 }
 

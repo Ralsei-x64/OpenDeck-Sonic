@@ -297,6 +297,7 @@ pub async fn wait_for_frame(micros: u32) {
 
 #[command]
 pub async fn update_image(context: Context, image: Option<String>) {
+	if crate::infobar::owns(&context).await { return; }
 	if Some(&context.profile) != crate::store::profiles::DEVICE_STORES.write().await.get_selected_profile(&context.device).ok().as_ref() {
 		return;
 	}
