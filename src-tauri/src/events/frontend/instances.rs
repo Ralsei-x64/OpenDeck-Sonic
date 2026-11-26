@@ -273,6 +273,12 @@ pub async fn set_child_delay(parent_context: ActionContext, index: usize, delay_
 	Ok(parent_settings)
 }
 
+// Webview timers are throttled when the editor is hidden. Device presentation keeps its own clock.
+#[command]
+pub async fn wait_for_frame(micros: u32) {
+	tokio::time::sleep(std::time::Duration::from_micros(u64::from(micros.min(35_000)))).await;
+}
+
 #[command]
 pub async fn update_image(context: Context, image: Option<String>) {
 	if Some(&context.profile) != crate::store::profiles::DEVICE_STORES.write().await.get_selected_profile(&context.device).ok().as_ref() {

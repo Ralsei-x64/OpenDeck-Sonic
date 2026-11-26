@@ -2,6 +2,8 @@ export type Settings = {
 	version: string;
 	language: string;
 	brightness: number;
+	animation_fps: 30 | 60;
+	reduce_tearing: boolean;
 	sleep_timeout_minutes: number;
 	sleep_when_computer_locked: boolean;
 	rotation: number;

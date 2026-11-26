@@ -18,7 +18,11 @@ use serde::Deserialize;
 #[serde(tag = "event")]
 #[serde(rename_all = "camelCase")]
 pub enum RegisterEvent {
-	RegisterPlugin { uuid: String },
+	RegisterPlugin {
+		uuid: String,
+		#[serde(default, rename = "subscribeFrameRate")]
+		subscribe_frame_rate: bool,
+	},
 	RegisterPropertyInspector { uuid: String },
 }
 

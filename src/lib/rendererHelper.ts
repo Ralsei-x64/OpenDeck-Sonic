@@ -50,6 +50,7 @@ export async function renderImage(
 	active: boolean,
 	pressed: boolean,
 	rotation?: number,
+	present: (write: () => Promise<void>) => Promise<void> = (write) => write(),
 ) {
 	// Create canvas
 	let scale = 1;
@@ -179,8 +180,9 @@ export async function renderImage(
 	context.restore();
 
 	if (active && slotContext) {
-		// Submit this frame while the caller still holds the canvas lock.
-		await invoke("update_image", { context: slotContext, image: canvas.toDataURL("image/jpeg") });
+		// Capture the complete canvas before the next render can reuse it.
+		const image = canvas.toDataURL("image/jpeg");
+		await present(() => invoke("update_image", { context: slotContext, image }));
 	}
 }
 

@@ -20,7 +20,7 @@ pub async fn get_settings() -> crate::store::Settings {
 }
 
 #[command]
-pub async fn set_settings(_app: AppHandle, settings: crate::store::Settings) -> Result<(), Error> {
+pub async fn set_settings(_app: AppHandle, mut settings: crate::store::Settings) -> Result<(), Error> {
 	#[cfg(not(debug_assertions))]
 	let _ = match settings.autolaunch {
 		true => _app.autolaunch().enable(),
@@ -32,8 +32,10 @@ pub async fn set_settings(_app: AppHandle, settings: crate::store::Settings) -> 
 	crate::device_sleep::update_sleep_when_computer_locked(settings.sleep_when_computer_locked).await?;
 
 	let mut store = crate::store::SETTINGS_MUT.lock().await;
+	settings.animation_fps = if settings.animation_fps == 60 { 60 } else { 30 };
 	store.value = settings;
 	store.save()?;
+	crate::events::outbound::misc::set_frame_rate(store.value.animation_fps);
 	Ok(())
 }
 

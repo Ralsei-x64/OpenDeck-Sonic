@@ -50,6 +50,7 @@
 		"windows": [
 			{
 				"title": "OpenDeck Sonic",
+				"backgroundThrottling": "disabled",
 				"fullscreen": false,
 				"resizable": true,
 				"width": 800,

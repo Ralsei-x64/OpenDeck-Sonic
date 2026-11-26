@@ -71,6 +71,20 @@
 
 	{#if $settings}
 		<div class="flex flex-row items-center mx-2 mb-2 space-x-2">
+			<label for="settings-animation-fps" class="text-neutral-400">{$t("settings.animation_fps")}</label>
+			<div class="select-wrapper">
+				<select bind:value={$settings.animation_fps} class="w-auto pr-10!" id="settings-animation-fps">
+					<option value={30}>30 fps</option>
+					<option value={60}>60 fps</option>
+				</select>
+			</div>
+		</div>
+		<div class="flex flex-row items-center mx-2 mb-2 space-x-2">
+			<input type="checkbox" id="settings-reduce-tearing" bind:checked={$settings.reduce_tearing} />
+			<label for="settings-reduce-tearing" class="text-neutral-400">{$t("settings.reduce_tearing")}</label>
+			<Tooltip>{$t("settings.reduce_tearing.tooltip")}</Tooltip>
+		</div>
+		<div class="flex flex-row items-center mx-2 mb-2 space-x-2">
 			<label for="settings-language" class="text-neutral-400">{$t("settings.language")}</label>
 			<div class="select-wrapper">
 				<select bind:value={$settings.language} class="w-auto pr-10!" id="settings-language">

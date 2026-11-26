@@ -17,7 +17,8 @@
 
 	import { invoke } from "@tauri-apps/api/core";
 	import { listen } from "@tauri-apps/api/event";
-	import { tick } from "svelte";
+	import { onDestroy, tick } from "svelte";
+	import { FramePacer } from "$lib/framePacer";
 
 	export let context: Context | null;
 	export let label: string = "";
@@ -148,30 +149,36 @@
 	});
 
 	let canvas: HTMLCanvasElement;
-	let lock = new CanvasLock();
+	const lock = new CanvasLock();
+	const output = new FramePacer((ms) => invoke("wait_for_frame", { micros: Math.ceil(ms * 1000) }));
+	let generation = 0;
+	const nextGeneration = () => ++generation;
+	const superseded = (id: number) => id !== generation;
+	$: paced = active && !!context && !!$settings?.reduce_tearing;
+	$: output.configure(active && context ? JSON.stringify([context, slot?.action.uuid]) : "", paced ? ($settings?.animation_fps ?? 30) : 0);
+	onDestroy(() => output.close());
 	export let size = 144;
 	// Canvas resolution defaults to a square `size`, but rectangular controllers (e.g. the Neo's infobar) can override this.
 	export let width: number = size;
 	export let height: number = size;
 	$: (async () => {
-		const sl = structuredClone(slot);
-		if (!sl) {
-			const unlock = await lock.lock();
-			try {
-				const ctx = canvas?.getContext("2d");
-				if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-				if (active) await invoke("update_image", { context, image: null });
-			} finally {
-				unlock();
+		const requested = nextGeneration();
+		const route = output.route;
+		const dest = context;
+		const frameState = state;
+		const fallback = slot?.action.states[slot.current_state]?.image ?? slot?.action.icon;
+		const present = (write: () => Promise<void>) => output.submit(route, write);
+		const unlock = await lock.lock();
+		try {
+			if (route !== output.route || (paced && superseded(requested))) return;
+			if (frameState && canvas) {
+				await renderImage(canvas, dest, frameState, fallback, showOk, showAlert, true, active, pressed, $settings?.rotation, present);
+			} else if (!frameState) {
+				canvas?.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+				if (active && dest) await present(() => invoke("update_image", { context: dest, image: null }));
 			}
-		} else {
-			const unlock = await lock.lock();
-			try {
-				let fallback = sl.action.states[sl.current_state]?.image ?? sl.action.icon;
-				if (state && canvas) await renderImage(canvas, context, state, fallback, showOk, showAlert, true, active, pressed, $settings?.rotation);
-			} finally {
-				unlock();
-			}
+		} finally {
+			unlock();
 		}
 	})();
 

@@ -26,7 +26,7 @@ pub async fn registered_plugins() -> Vec<String> {
 pub async fn register_plugin(event: RegisterEvent, stream: WebSocketStream<TcpStream>) {
 	let (mut read, write) = stream.split();
 	match event {
-		RegisterEvent::RegisterPlugin { uuid } => {
+		RegisterEvent::RegisterPlugin { uuid, subscribe_frame_rate } => {
 			if PLUGIN_SOCKETS.lock().await.contains_key(&uuid) {
 				log::error!("Plugin {} is already registered; ignoring duplicate registration", uuid);
 				return;
@@ -39,9 +39,14 @@ pub async fn register_plugin(event: RegisterEvent, stream: WebSocketStream<TcpSt
 				let _ = read.flush().await;
 			}
 			PLUGIN_SOCKETS.lock().await.insert(uuid.clone(), read);
+			let frame_rates = subscribe_frame_rate.then(|| tokio::spawn(outbound::misc::stream_frame_rate(uuid.clone())));
 			tokio::spawn(async move {
 				let uuid = uuid;
 				write.for_each(|event| inbound::process_incoming_message(event, &uuid, false)).await;
+				if let Some(task) = frame_rates {
+					task.abort();
+					let _ = task.await;
+				}
 				PLUGIN_SOCKETS.lock().await.remove(&uuid);
 			});
 		}

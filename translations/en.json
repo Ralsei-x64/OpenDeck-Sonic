@@ -1,4 +1,7 @@
 {
+	"settings.animation_fps": "Animation frame rate",
+	"settings.reduce_tearing": "Reduce tearing",
+	"settings.reduce_tearing.tooltip": "Space device writes at the selected rate. If frames arrive too quickly, display the newest complete frame.",
 	"action_list.hint": "Use arrow keys to navigate between actions within a category.",
 	"action_list.search_placeholder": "Search actions",
 	"device_selector.choose_device": "Choose a device...",
