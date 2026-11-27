@@ -329,32 +329,14 @@ pub fn damage(before: Option<&Pixmap>, after: &Pixmap, partial: bool) -> Option<
 	})
 }
 
-impl Rect {
-	// The JPEG encoder processes 8 px blocks starting at the rotated top-left.
-	// Cover whole blocks so a partial write decodes like the same area of a full frame.
-	pub fn jpeg_blocks(self) -> Self {
-		fn align(start: u32, length: u32, limit: u32) -> (u32, u32) {
-			let end = limit - (limit - start - length) / 8 * 8;
-			let start = limit.saturating_sub((limit - start).next_multiple_of(8));
-			(start, end - start)
-		}
-		let (x, w) = align(self.x, self.w, WIDTH);
-		let (y, h) = align(self.y, self.h, HEIGHT);
-		Self { x, y, w, h }
-	}
-}
-
-pub fn encode(frame: &Pixmap, rect: Rect) -> Result<Vec<u8>> {
-	// The Neo takes logical rectangle coordinates and a locally rotated JPEG.
-	let mut rgb = Vec::with_capacity((rect.w * rect.h * 3) as usize);
-	for y in (rect.y..rect.y + rect.h).rev() {
-		for x in (rect.x..rect.x + rect.w).rev() {
-			let i = ((y * WIDTH + x) * 4) as usize;
-			rgb.extend_from_slice(&frame.data()[i..i + 3]);
-		}
+pub fn encode_window(frame: &Pixmap) -> Result<Vec<u8>> {
+	// Neo full-window transfers expect a 180-degree rotated JPEG.
+	let mut rgb = Vec::with_capacity((WIDTH * HEIGHT * 3) as usize);
+	for pixel in frame.data().rchunks_exact(4) {
+		rgb.extend_from_slice(&pixel[..3]);
 	}
 	let mut bytes = Vec::new();
-	image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, 90).encode(&rgb, rect.w, rect.h, image::ExtendedColorType::Rgb8)?;
+	image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, 90).encode(&rgb, WIDTH, HEIGHT, image::ExtendedColorType::Rgb8)?;
 	Ok(bytes)
 }
 
@@ -438,34 +420,17 @@ mod tests {
 	}
 
 	#[test]
-	fn decoded_patch_matches_full_jpeg_including_screen_edges() {
-		let mut view = Pixmap::new(WIDTH, HEIGHT).unwrap();
-		for (i, px) in view.data_mut().chunks_exact_mut(4).enumerate() {
-			px.copy_from_slice(&[(i % 239) as u8, (i * 3 % 255) as u8, (i * 13 % 255) as u8, 255]);
-		}
-		let decode = |rect| image::load_from_memory(&encode(&view, rect).unwrap()).unwrap().to_rgb8();
-		let full = decode(FULL);
-		for rect in [Rect { x: 61, y: 8, w: 170, h: 12 }, Rect { x: 3, y: 1, w: 5, h: 6 }, Rect { x: 229, y: 45, w: 19, h: 13 }] {
-			let r = rect.jpeg_blocks();
-			let patch = decode(r);
-			for (x, y, pixel) in patch.enumerate_pixels() {
-				assert_eq!(pixel, full.get_pixel(WIDTH - r.x - r.w + x, HEIGHT - r.y - r.h + y));
-			}
-		}
-	}
-
-	#[test]
-	fn jpeg_rotates_the_patch_around_its_own_center() {
-		let mut frame = Pixmap::new(WIDTH, HEIGHT).unwrap();
-		for y in 10..26 {
-			for x in 20..52 {
-				let i = ((y * WIDTH + x) * 4) as usize;
-				frame.data_mut()[i..i + 4].copy_from_slice(if x < 36 { &[255, 0, 0, 255] } else { &[0, 0, 255, 255] });
-			}
-		}
-		let jpeg = encode(&frame, Rect { x: 20, y: 10, w: 32, h: 16 }).unwrap();
-		let out = image::load_from_memory(&jpeg).unwrap().to_rgb8();
-		assert_eq!(out.dimensions(), (32, 16));
-		assert!(out.get_pixel(3, 8)[2] > 245 && out.get_pixel(29, 8)[0] > 245);
+	fn a_small_preview_change_still_encodes_the_entire_device_window() {
+		let before = Pixmap::new(WIDTH, HEIGHT).unwrap();
+		let mut after = before.clone();
+		let rect = IntRect::from_xywh(18, 10, 24, 16).unwrap();
+		let mut mark = Pixmap::new(rect.width(), rect.height()).unwrap();
+		mark.fill(Color::from_rgba8(255, 0, 0, 255));
+		blit(&mut after, &mark, rect.x() as f32, rect.y() as f32, 1.);
+		assert_eq!(damage(Some(&before), &after, true), Some(Rect { x:18, y:10, w:24, h:16 }));
+		let image = image::load_from_memory(&encode_window(&after).unwrap()).unwrap().to_rgb8();
+		assert_eq!(image.dimensions(), (WIDTH, HEIGHT));
+		assert!(image.get_pixel(WIDTH - 30, HEIGHT - 18)[0] > 245);
+		assert_eq!(image.get_pixel(30, 18).0, [0, 0, 0]);
 	}
 }

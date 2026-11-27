@@ -255,9 +255,10 @@ async fn run(key: &ActionContext, mut input: mpsc::Receiver<Command>, saved: Arc
 			render::damage(if force { None } else { snap.frame.as_ref() }, &frame, renderer.media_partial())
 		};
 		if let Some(rect) = rect {
-			let window = rect.jpeg_blocks();
-			let jpeg = render::encode(&frame, window)?;
-			crate::elgato::write_infobar(&key.device, window, jpeg).await?;
+			// A window refresh is self-contained even if a previous device update was missed.
+			// The preview can still request just the changed pixels from this frame.
+			let jpeg = render::encode_window(&frame)?;
+			crate::elgato::write_infobar(&key.device, &jpeg).await?;
 			let mut snap = saved.lock().unwrap();
 			snap.previous = snap.revision;
 			snap.revision = REVISION.fetch_add(1, Ordering::Relaxed);
@@ -280,8 +281,6 @@ async fn run(key: &ActionContext, mut input: mpsc::Receiver<Command>, saved: Arc
 		});
 	}
 }
-
-pub(crate) use render::Rect as WindowRect;
 
 #[tauri::command]
 pub async fn watch_infobar(context: String, visible: bool) {

@@ -110,6 +110,8 @@ pub struct StreamDeck {
     kind: Kind,
     /// Connected HIDDevice
     device: HidDevice,
+    /// Keep all reports for one image together when multiple display surfaces update.
+    image_transfer: Mutex<()>,
     /// Temporarily cache the image before sending it to the device
     image_cache: RwLock<Vec<ImageCache>>,
 }
@@ -128,6 +130,7 @@ impl StreamDeck {
         Ok(StreamDeck {
             kind,
             device,
+            image_transfer: Mutex::new(()),
             image_cache: RwLock::new(vec![]),
         })
     }
@@ -458,16 +461,11 @@ impl StreamDeck {
 
     /// Flushes the button's image to the device
     pub fn flush(&self) -> Result<(), StreamDeckError> {
-        if self.image_cache.read()?.is_empty() {
-            return Ok(());
-        }
-
-        for image in self.image_cache.read()?.iter() {
+        let mut images = self.image_cache.write()?;
+        for image in images.iter() {
             self.send_image(image.key, &image.image_data)?;
         }
-
-        self.image_cache.write()?.clear();
-
+        images.clear();
         Ok(())
     }
 
@@ -487,6 +485,7 @@ impl StreamDeck {
     where
         T: Fn(usize, usize, bool) -> Vec<u8>,
     {
+        let _transfer = self.image_transfer.lock()?;
         let image_report_length = parameters.image_report_length;
         let image_report_payload_length = parameters.image_report_payload_length;
 
